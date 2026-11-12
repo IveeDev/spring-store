@@ -1,46 +1,74 @@
 package com.codewithmosh.store.controllers;
 
+import com.codewithmosh.store.dtos.ErrorDto;
 import com.codewithmosh.store.dtos.ProductDto;
-import com.codewithmosh.store.entities.Product;
-import com.codewithmosh.store.mappers.ProductMapper;
-import com.codewithmosh.store.repositories.ProductRepository;
+import com.codewithmosh.store.exception.CategoryNotFoundException;
+import com.codewithmosh.store.exception.ProductNotFoundException;
+import com.codewithmosh.store.services.ProductService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
-
+import java.util.Map;
 
 @RestController
 @AllArgsConstructor
 @RequestMapping("/products")
+@Tag(name = "Products")
 public class ProductController {
-    private final ProductRepository productRepository;
-    private final ProductMapper productMapper;
+    private final ProductService productService;
 
     @GetMapping
     public List<ProductDto> getAllProducts(
             @RequestParam(required = false, name = "categoryId")
             Byte categoryId
     ) {
-            List<Product> products;
-            if (categoryId != null){
-             products = productRepository.findByCategoryId(categoryId);
-            }else{
-                products = productRepository.findAllWithCategory();
-            }
-        return products.stream().map(product -> productMapper.toDto(product)).toList();
+        return productService.getAllProducts(categoryId);
     }
 
-
-    @GetMapping("{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<ProductDto> getProduct(@PathVariable Long id) {
-        var product = productRepository.findById(id).orElse(null);
-
-        if(product == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(productMapper.toDto(product));
+        var productDto = productService.getProduct(id);
+        return ResponseEntity.ok(productDto);
     }
 
+    @PostMapping
+    public ResponseEntity<ProductDto> createProduct(
+            @RequestBody ProductDto productDto,
+            UriComponentsBuilder uriBuilder
+    ){
+        var createdProductDto = productService.createProduct(productDto);
+
+        var uri = uriBuilder.path("/products/{id}").buildAndExpand(createdProductDto.getId()).toUri();
+        return ResponseEntity.created(uri).body(createdProductDto);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ProductDto> updateProduct(
+            @PathVariable Long id,
+            @RequestBody ProductDto productDto
+    ){
+        var updatedProductDto = productService.updateProduct(id, productDto);
+        return ResponseEntity.ok(updatedProductDto);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id){
+        productService.deleteProduct(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @ExceptionHandler(ProductNotFoundException.class)
+    public ResponseEntity<ErrorDto> handleProductNotFound(){
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorDto("Product not found"));
+    }
+
+    @ExceptionHandler(CategoryNotFoundException.class)
+    public ResponseEntity<ErrorDto> handleCategoryNotFound(){
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorDto("Category not found"));
+    }
 }
