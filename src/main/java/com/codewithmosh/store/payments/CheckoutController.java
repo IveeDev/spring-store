@@ -1,12 +1,12 @@
 package com.codewithmosh.store.payments;
 
 
-import com.codewithmosh.store.dtos.ErrorDto;
+import com.codewithmosh.store.common.ErrorDto;
 
-import com.codewithmosh.store.exception.CartEmptyException;
-import com.codewithmosh.store.exception.CartNotFoundException;
+import com.codewithmosh.store.carts.CartEmptyException;
+import com.codewithmosh.store.carts.CartNotFoundException;
 
-import com.codewithmosh.store.repositories.OrderRepository;
+import com.codewithmosh.store.orders.OrderRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
